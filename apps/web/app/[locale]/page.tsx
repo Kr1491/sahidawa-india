@@ -15,9 +15,10 @@ import {
     ChevronRight,
     Activity,
     MessageCircle,
+    Syringe,
+    ArrowRight,
 } from "lucide-react";
 
-import { Syringe, ArrowRight } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Link } from "@/i18n/routing";

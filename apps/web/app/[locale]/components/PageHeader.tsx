@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Globe, Zap, Syringe } from "lucide-react";
+import { ArrowLeft, Globe, Zap} from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -71,7 +71,7 @@ export const PageHeader = ({
                 <div className="flex shrink-0 items-center justify-end gap-2">
                     
                     {/* NEW VACCINE HUB LINK COMPONENT */}
-                    <Link
+                    {/* <Link
                         href="/vaccine-hub"
                         aria-label="Navigate to Immunization Vaccine Hub"
                         className={`flex h-10 px-3 items-center justify-center gap-1.5 rounded-full font-semibold text-xs transition-all ${pageHeaderFocusRingClass} ${
@@ -82,7 +82,7 @@ export const PageHeader = ({
                     >
                         <Syringe size={16} aria-hidden="true" />
                         <span className="hidden sm:inline">Vaccine Hub</span>
-                    </Link>
+                    </Link> */}
 
                     {/* STATUS OR QUICK ACTIONS CONTAINER */}
                     <ThemeToggle />
