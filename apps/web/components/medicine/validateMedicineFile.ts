@@ -1,7 +1,7 @@
 export type ValidationResult = { valid: true } | { valid: false; error: string };
 
 export const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
-const ALLOWED_TYPES_SET = new Set(ALLOWED_MIME_TYPES);
+const ALLOWED_TYPES_SET = new Set<string>(ALLOWED_MIME_TYPES);
 export const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
 /**

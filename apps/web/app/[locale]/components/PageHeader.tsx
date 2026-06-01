@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Globe, Zap} from "lucide-react";
+import { ArrowLeft, Globe, Zap } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -72,8 +72,8 @@ export const PageHeader = ({
                 {/* RIGHT ACTIONS BLOCK (Features & Utilities) */}
                 <div className="flex shrink-0 items-center justify-end gap-2">
                     {/* STATUS OR QUICK ACTIONS CONTAINER */}
-                    <ThemeToggle />
-                  
+                    {showThemeToggle && <ThemeToggle />}
+
                     {showLanguage ? (
                         <div
                             className="flex items-center gap-1.5 rounded-full border border-(--color-border-muted) bg-(--color-surface-page) px-3 py-1.5 shadow-sm"
