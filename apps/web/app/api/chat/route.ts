@@ -22,6 +22,14 @@ type VoiceTriageResponse = {
     emergency: boolean;
 };
 
+type TextStreamChunk = {
+    text?: string;
+    usageMetadata?: {
+        promptTokenCount?: number;
+        candidatesTokenCount?: number;
+    };
+};
+
 function getLatestMessageText(messages: ChatMessage[] | undefined) {
     if (!Array.isArray(messages) || messages.length === 0) {
         return "";
@@ -189,27 +197,81 @@ export async function POST(req: Request) {
         const language = localeMap[finalLocale as keyof typeof localeMap] || "English";
         const systemPrompt = BASE_PROMPT.replace("{language}", language);
 
-        const response = await ai.models.generateContent({
+        const responseStream = (await ai.models.generateContentStream({
             model: "gemini-2.5-flash",
             contents: formattedContents,
             config: {
                 systemInstruction: systemPrompt,
             },
-        });
+        })) as AsyncIterable<TextStreamChunk>;
+        const responseIterator = responseStream[Symbol.asyncIterator]();
+        const firstStreamResult = await responseIterator.next();
 
-        const latency_ms = Date.now() - startTime;
-        structuredLog({
-            log_level: "info",
-            route: ROUTE,
-            latency_ms,
-            metrics: {
-                input_tokens: response.usageMetadata?.promptTokenCount,
-                output_tokens: response.usageMetadata?.candidatesTokenCount,
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream<Uint8Array>({
+            async start(controller) {
+                let usageMetadata: TextStreamChunk["usageMetadata"];
+
+                try {
+                    const enqueueChunk = (chunk: TextStreamChunk) => {
+                        usageMetadata = chunk.usageMetadata ?? usageMetadata;
+
+                        if (chunk.text) {
+                            controller.enqueue(encoder.encode(chunk.text));
+                        }
+                    };
+
+                    if (!firstStreamResult.done) {
+                        enqueueChunk(firstStreamResult.value);
+                    }
+
+                    while (true) {
+                        const chunkResult = await responseIterator.next();
+                        if (chunkResult.done) {
+                            break;
+                        }
+                        enqueueChunk(chunkResult.value);
+                    }
+
+                    const latency_ms = Date.now() - startTime;
+                    structuredLog({
+                        log_level: "info",
+                        route: ROUTE,
+                        latency_ms,
+                        metrics: {
+                            input_tokens: usageMetadata?.promptTokenCount,
+                            output_tokens: usageMetadata?.candidatesTokenCount,
+                        },
+                        meta: { mode: "chat", messageCount: (messages || []).length },
+                    });
+                    controller.close();
+                } catch (streamError) {
+                    const latency_ms = Date.now() - startTime;
+                    structuredLog({
+                        log_level: "error",
+                        route: ROUTE,
+                        latency_ms,
+                        error: {
+                            message: "AI chat stream failed",
+                            code: 500,
+                            stack: streamError instanceof Error ? streamError.stack : undefined,
+                        },
+                        meta: { mode: "chat", messageCount: (messages || []).length },
+                    });
+                    controller.error(streamError);
+                }
             },
-            meta: { mode: "chat", messageCount: (messages || []).length },
+            async cancel() {
+                await responseIterator.return?.();
+            },
         });
 
-        return NextResponse.json({ text: response.text });
+        return new Response(stream, {
+            headers: {
+                "Content-Type": "text/plain; charset=utf-8",
+                "Cache-Control": "no-cache, no-transform",
+            },
+        });
     } catch (error: any) {
         const latency_ms = Date.now() - startTime;
         const statusCode: number = error?.status || 500;

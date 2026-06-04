@@ -2,14 +2,15 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { useTranslations } from "next-intl";
 import { ChatBubble, type Message } from "./components/ChatBubble";
 import { ActionCard } from "./components/ActionCard";
 import { TypingIndicator } from "./components/TypingIndicator";
 import { TrustBar } from "./components/TrustBar";
 import { Camera, Pill, MapPin } from "lucide-react";
+import { isAbortError, readChatErrorMessage, readTextResponseStream } from "@/lib/chatStream";
 
 const genId = () => Math.random().toString(36).slice(2, 10);
+const EMPTY_ASSISTANT_REPLY = "I'm here to help! Could you rephrase that?";
 
 const INITIAL_MESSAGES = {
     en: "Namaste, I'm SahiDawa, your trusted health companion. I can help you verify medicines, understand symptoms, or find nearby care. What would you like help with today?",
@@ -104,6 +105,38 @@ const ACTIONS = [
     },
 ];
 
+function upsertAssistantMessage(
+    messages: Message[],
+    id: string,
+    content: string,
+    options: { isError?: boolean } = {}
+) {
+    const existingMessage = messages.find((message) => message.id === id);
+
+    if (!existingMessage) {
+        return [
+            ...messages,
+            {
+                id,
+                role: "assistant" as const,
+                content,
+                timestamp: new Date(),
+                isError: options.isError || undefined,
+            },
+        ];
+    }
+
+    return messages.map((message) =>
+        message.id === id
+            ? {
+                  ...message,
+                  content,
+                  isError: options.isError || undefined,
+              }
+            : message
+    );
+}
+
 export default function ChatUI() {
     const params = useParams();
     const locale = (params.locale as string) || "en";
@@ -118,11 +151,23 @@ export default function ChatUI() {
     const [isTyping, setIsTyping] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [showWelcome, setShowWelcome] = useState(true);
+    const [streamingAssistantId, setStreamingAssistantId] = useState<string | null>(null);
     const lastUserText = useRef("");
     const messagesContainerRef = useRef<HTMLElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const recRef = useRef<any>(null);
-    const t = useTranslations("chat");
+    const activeRequestRef = useRef<AbortController | null>(null);
+    const isMountedRef = useRef(true);
+
+    useEffect(() => {
+        isMountedRef.current = true;
+
+        return () => {
+            isMountedRef.current = false;
+            activeRequestRef.current?.abort();
+            recRef.current?.stop?.();
+        };
+    }, []);
 
     useEffect(() => {
         const container = messagesContainerRef.current;
@@ -157,6 +202,17 @@ export default function ChatUI() {
             setInput("");
             setIsTyping(true);
 
+            activeRequestRef.current?.abort();
+            const requestController = new AbortController();
+            activeRequestRef.current = requestController;
+            const isActiveRequest = () =>
+                isMountedRef.current &&
+                activeRequestRef.current === requestController &&
+                !requestController.signal.aborted;
+
+            let assistantMessageId: string | null = null;
+            let streamedReply = "";
+
             try {
                 const history = [...messages, userMsg]
                     .filter((m) => !m.isError)
@@ -165,33 +221,71 @@ export default function ChatUI() {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ messages: history, locale }),
+                    signal: requestController.signal,
                 });
                 if (res.status === 429) {
                     throw new Error("Too many requests. Please try again in a few moments.");
                 }
-                if (!res.ok) throw new Error();
-                const data = await res.json();
-                const reply = data.text || "I'm here to help! Could you rephrase that?";
-                setMessages((prev) => [
-                    ...prev,
-                    { id: genId(), role: "assistant", content: reply, timestamp: new Date() },
-                ]);
-            } catch (err: any) {
-                setMessages((prev) => [
-                    ...prev,
-                    {
-                        id: genId(),
-                        role: "assistant",
-                        content: err.message || "Something went wrong",
-                        timestamp: new Date(),
-                        isError: true,
+                if (!res.ok) {
+                    throw new Error(
+                        await readChatErrorMessage(res, "Failed to generate AI response")
+                    );
+                }
+
+                const reply = await readTextResponseStream(
+                    res,
+                    (chunk) => {
+                        if (!isActiveRequest()) return;
+
+                        streamedReply += chunk;
+
+                        if (!assistantMessageId) {
+                            assistantMessageId = genId();
+                            setStreamingAssistantId(assistantMessageId);
+                        }
+
+                        setMessages((prev) =>
+                            upsertAssistantMessage(
+                                prev,
+                                assistantMessageId as string,
+                                streamedReply
+                            )
+                        );
                     },
-                ]);
+                    { signal: requestController.signal }
+                );
+
+                if (!isActiveRequest()) return;
+
+                const finalReply = reply || EMPTY_ASSISTANT_REPLY;
+                if (!assistantMessageId) {
+                    assistantMessageId = genId();
+                }
+
+                setMessages((prev) =>
+                    upsertAssistantMessage(prev, assistantMessageId as string, finalReply)
+                );
+            } catch (err: any) {
+                if (isAbortError(err)) return;
+                if (!isActiveRequest()) return;
+
+                const errorMessage = err.message || "Something went wrong";
+                const messageId = assistantMessageId || genId();
+
+                setMessages((prev) =>
+                    upsertAssistantMessage(prev, messageId, errorMessage, { isError: true })
+                );
             } finally {
-                setIsTyping(false);
+                if (activeRequestRef.current === requestController) {
+                    activeRequestRef.current = null;
+                    if (isMountedRef.current) {
+                        setIsTyping(false);
+                        setStreamingAssistantId(null);
+                    }
+                }
             }
         },
-        [messages, isTyping]
+        [messages, isTyping, locale]
     );
 
     const handleRetry = useCallback(
@@ -230,10 +324,15 @@ export default function ChatUI() {
         r.lang = speechLocales[locale as keyof typeof speechLocales] || "en-IN";
         r.interimResults = false;
         r.onresult = (e: any) => {
+            if (!isMountedRef.current) return;
             setInput(e.results[0][0].transcript);
             setIsListening(false);
         };
-        r.onerror = r.onend = () => setIsListening(false);
+        r.onerror = r.onend = () => {
+            if (isMountedRef.current) {
+                setIsListening(false);
+            }
+        };
         recRef.current = r;
         r.start();
         setIsListening(true);
@@ -280,7 +379,7 @@ export default function ChatUI() {
                         <ChatBubble key={msg.id} msg={msg} onRetry={handleRetry} />
                     ))}
 
-                    {isTyping && <TypingIndicator />}
+                    {isTyping && !streamingAssistantId && <TypingIndicator />}
 
                     {showWelcome && !isTyping && messages.length === 1 && (
                         <div>
