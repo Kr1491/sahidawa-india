@@ -93,7 +93,21 @@ jobs:
                       console.log(`Lines Changed: ${linesChanged}`);
 
             # ─────────────────────────────────────────────────────────────────
-            # Step 5: Run the Python script that:
+            # Step 5: Extract git diff (Truncated for AI context)
+            - name: "📄 Extract git diff"
+              id: diff
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  PR_NUM="${{ steps.pr_meta.outputs.pr_number }}"
+                  # Truncate to 140k chars to stay within Gemini token limits safely
+                  DIFF=$(gh pr diff "$PR_NUM" --repo "${{ github.repository }}" 2>/dev/null | head -c 140000 || echo "Diff unavailable")
+                  echo "git_diff<<ENDDIFF" >> $GITHUB_OUTPUT
+                  echo "$DIFF" >> $GITHUB_OUTPUT
+                  echo "ENDDIFF" >> $GITHUB_OUTPUT
+
+            # ─────────────────────────────────────────────────────────────────
+            # Step 6: Run the Python script that:
             #   A) Generates a unique post using Gemini AI
             #   B) Publishes the post to LinkedIn via UGC Posts API
             #
@@ -116,6 +130,7 @@ jobs:
                   PR_BODY: ${{ steps.pr_meta.outputs.pr_body }}
                   PR_REPO: ${{ steps.pr_meta.outputs.pr_repo }}
                   PR_LINES_CHANGED: ${{ steps.pr_meta.outputs.pr_lines_changed }}
+                  PR_GIT_DIFF: ${{ steps.diff.outputs.git_diff }}
               run: python scripts/linkedin_shoutout.py
 
             # ─────────────────────────────────────────────────────────────────

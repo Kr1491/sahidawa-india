@@ -20,6 +20,7 @@ Environment Variables Required (set as GitHub Secrets):
   - PR_NUMBER         : PR number
   - PR_REPO           : Repository name (e.g. RatLoopz/sahidawa-india)
   - PR_LINES_CHANGED  : Total lines added + deleted in the PR
+  - PR_GIT_DIFF       : The actual code diff (passed from GitHub actions)
 """
 
 import os
@@ -63,6 +64,7 @@ def get_pr_metadata() -> dict:
         "body": os.environ.get("PR_BODY", "").strip()[:500],
         "repo": os.environ.get("PR_REPO", "RatLoopz/sahidawa-india"),
         "lines_changed": os.environ.get("PR_LINES_CHANGED", "0"),
+        "diff": os.environ.get("PR_GIT_DIFF", ""),
     }
 
 
@@ -100,6 +102,60 @@ def validate_pr_size(pr: dict) -> None:
         sys.exit(0)
     
     print(f"✅ PR Size Validation Passed. Lines changed: {lines_changed} (Threshold: {threshold})")
+
+
+def evaluate_pr_impact(pr: dict) -> None:
+    """
+    Sends the PR diff to Gemini to semantically evaluate if it's a genuine 
+    advanced/critical contribution, or just trivial bloat (JSON dumps, locks).
+    """
+    gemini_api_key = get_env_or_exit("GEMINI_API_KEY")
+    diff = pr.get("diff", "")
+    
+    if not diff or diff == "Diff unavailable":
+        print("⚠️  No Git Diff available. Bypassing semantic AI check.")
+        return
+
+    print("🧠 Semantic AI Gatekeeper: Evaluating PR quality...")
+
+    system_prompt = (
+        "You are an expert Principal Engineer. Your job is to evaluate if a Pull Request "
+        "diff represents a genuinely complex/architectural contribution, or if it is "
+        "trivial bloat (e.g. large JSON data dumps, package-lock.json updates, simple "
+        "variable renaming across many files, or auto-generated code).\n"
+        "Reply STRICTLY with exactly one word: APPROVE or REJECT."
+    )
+
+    user_prompt = (
+        f"PR Title: {pr['title']}\n\n"
+        f"Git Diff:\n{diff[:50000]}" # Limit context to 50k chars
+    )
+
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"gemini-2.0-flash:generateContent?key={gemini_api_key}"
+    )
+    payload = {
+        "system_instruction": {"parts": [{"text": system_prompt}]},
+        "contents": [{"parts": [{"text": user_prompt}]}],
+        "generationConfig": {"temperature": 0.0, "maxOutputTokens": 10},
+    }
+
+    try:
+        resp = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=30)
+        resp.raise_for_status()
+        verdict = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip().upper()
+        
+        if "REJECT" in verdict:
+            print(f"🛑 AI GATEKEEPER REJECTED: This PR appears to be trivial/bloat despite its size.")
+            print(f"   Verdict received: {verdict}")
+            print("   Exiting gracefully to prevent a fake shoutout.")
+            sys.exit(0)
+            
+        print("✅ AI Gatekeeper Approved: PR is a genuine contribution.")
+        
+    except Exception as exc:
+        print(f"⚠️  AI Gatekeeper evaluation failed ({exc}). Bypassing semantic check.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -260,8 +316,9 @@ def main():
     tier_display, tier_desc = determine_tier(pr["labels"])
     print(f"🏆 Tier: {tier_display}")
 
-    # The Smart Gate Validation
+    # The Smart Gate Validations
     validate_pr_size(pr)
+    evaluate_pr_impact(pr)
 
     ai_content = generate_post_with_gemini(pr, tier_display, tier_desc)
     final_post = assemble_final_post(ai_content, pr)
