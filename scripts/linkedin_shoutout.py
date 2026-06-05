@@ -111,12 +111,40 @@ def extract_linkedin_url(body: str) -> str:
     return ""
 
 
+def check_if_commented(pr_number: str, comment_snippet: str) -> bool:
+    import subprocess
+    try:
+        result = subprocess.run(
+            ['gh', 'pr', 'view', pr_number, '--json', 'comments'], 
+            capture_output=True, text=True
+        )
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            for c in data.get("comments", []):
+                if comment_snippet in c.get("body", ""):
+                    return True
+    except Exception as e:
+        print(f"Failed to check comments: {e}")
+    return False
+
+
 def validate_linkedin_url(pr: dict) -> str:
     linkedin_url = extract_linkedin_url(pr.get("body", ""))
     if not linkedin_url:
         print("🛑 REJECTED: No LinkedIn Profile URL found in the PR description.")
         print("   Without a LinkedIn URL, we cannot properly tag/mention the contributor.")
         print("   Exiting gracefully without triggering Make.com webhook.")
+        
+        pr_number = pr.get("number")
+        if pr_number and pr_number != "N/A":
+            comment_snippet = "Your PR is approved for a LinkedIn shoutout!"
+            comment_text = (
+                f"👋 {comment_snippet}\n"
+                f"Please **edit the PR description** to include your LinkedIn URL (Format: `https://linkedin.com/in/username`). "
+                f"Once you save the edit, the shoutout will trigger automatically."
+            )
+            if not check_if_commented(pr_number, comment_snippet):
+                os.system(f'gh pr comment {pr_number} --body "{comment_text}"')
         
         github_output = os.environ.get("GITHUB_OUTPUT")
         if github_output:
