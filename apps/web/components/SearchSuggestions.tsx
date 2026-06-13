@@ -1,7 +1,13 @@
 "use client";
 
 import React from "react";
-import { Search } from "lucide-react";
+import { Search, Clock, Pin } from "lucide-react";
+
+export interface HistoryItem {
+    query: string;
+    pinned: boolean;
+    timestamp: number;
+}
 
 export interface SearchSuggestionsProps {
     /** The list of suggestion strings to display */
@@ -74,6 +80,9 @@ export default function SearchSuggestions({
         );
     }
     if (!visible && !isLoading && !error && !noResults) {
+        return null;
+    }
+    if (isHistory && (!historyItems || historyItems.length === 0)) {
         return null;
     }
     // Show error message if there was an error loading suggestions
