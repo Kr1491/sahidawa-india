@@ -56,8 +56,6 @@ async function copyTextToClipboard(text: string) {
     }
 }
 
-// Result views with dark/light mode surface tokens and variables support
-
 export default function ScanPage() {
     const tScan = useTranslations("Scan");
     // Add these near the top of your component, inside the main function

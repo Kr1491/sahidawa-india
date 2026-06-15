@@ -26,7 +26,7 @@ export function getLocalizedMessage(
             ml: "🚨 {district} ൽ വ്യാജ മരുന്ന് മുന്നറിയിപ്പ്: {medicineName} ന്റെ ഒന്നിലധികം വ്യാജ റിപ്പോർട്ടുകൾ സ്ഥിരീകരിച്ചു. ദയവായി നിങ്ങളുടെ പാക്കേജിംഗ് ശ്രദ്ധയോടെ പരിശോധിക്കുക.",
             pa: "🚨 {district} ਵਿੱਚ ਨਕਲੀ ਦਵਾਈ ਦੀ ਚੇਤਾਵਨੀ: {medicineName} ਦੀਆਂ ਕਈ ਨਕਲੀ ਰਿਪੋਰਟਾਂ ਦੀ ਪੁਸ਼ਟੀ ਕੀਤੀ ਗਈ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਆਪਣੀ ਪੈਕੇਜਿੰਗ ਦੀ ਧਿਆਨ ਨਾਲ ਜਾਂਚ ਕਰੋ।",
             ur: "🚨 {district} میں جعلی دوا کا الرٹ: {medicineName} کی متعدد جعلی رپورٹس کی تصدیق ہو گئی ہے۔ براہ کرم اپنی پیکیجنگ کا بغور معائنہ کریں۔",
-            as: "🚨 {district} ত নকল ঔষধৰ সতৰ্কবাণী: {medicineName} ৰ একাধিক নকল প্ৰতিবেদন প্ৰমাণিত হৈছে। অনুগ্ৰহ কৰি আপোনাৰ পেকেজিং সাৱধানে পৰীক্ষা কৰক।"
+            as: "🚨 {district} ত নকল ঔষধৰ সতৰ্কবাণী: {medicineName} ৰ একাধিক নকল প্ৰতিবেদন প্ৰমাণিত হৈছে। অনুগ্ৰহ কৰি আপোনাৰ পেকেজিং সাৱধানে পৰীক্ষা কৰক।",
         },
         recall: {
             en: "🚨 Medicine Recall Alert: {medicineName} (Batch: {batchNumber}) has been flagged as substandard or recalled by CDSCO. Stop consumption immediately.",
@@ -40,7 +40,7 @@ export function getLocalizedMessage(
             ml: "🚨 മരുന്ന് തിരിച്ചുവിളിക്കൽ മുന്നറിയിപ്പ്: {medicineName} (ബാച്ച്: {batchNumber}) ഗുണനിലവാരമില്ലാത്തതാണെന്ന് CDSCO കണ്ടെത്തി അല്ലെങ്കിൽ തിരിച്ചുവിളിച്ചു. ഉപയോഗം ഉടൻ നിർത്തുക.",
             pa: "🚨 ਦਵਾਈ ਵਾਪਸ ਲੈਣ ਦੀ ਚੇਤਾਵਨੀ: {medicineName} (ਬੈਚ: {batchNumber}) ਨੂੰ CDSCO ਦੁਆਰਾ ਘਟੀਆ ਜਾਂ ਵਾਪਸ ਲੈਣ ਯੋਗ ਘੋਸ਼ਿਤ ਕੀਤਾ ਗਿਆ ਹੈ। ਤੁਰੰਤ ਸੇਵਨ ਬੰਦ ਕਰੋ।",
             ur: "🚨 دوا کی واپسی کا الرٹ: {medicineName} (بیچ: {batchNumber}) کو CDSCO کی طرف سے غیر معیاری یا واپس منگوا لیا گیا ہے۔ فوری طور پر استعمال بند کر دیں۔",
-            as: "🚨 ঔষধ প্ৰত্যাহাৰৰ সতৰ্কবাণী: {medicineName} (বেটচ: {batchNumber}) ক CDSCO ৰ দ্বাৰা নিম্নমানৰ বা প্ৰত্যাহাৰ কৰা বুলি চিহ্নিত কৰা হৈছে। লগে লগে সেৱন বন্ধ কৰক।"
+            as: "🚨 ঔষধ প্ৰত্যাহাৰৰ সতৰ্কবাণী: {medicineName} (বেটচ: {batchNumber}) ক CDSCO ৰ দ্বাৰা নিম্নমানৰ বা প্ৰত্যাহাৰ কৰা বুলি চিহ্নিত কৰা হৈছে। লগে লগে সেৱন বন্ধ কৰক।",
         },
         expiry: {
             en: "⚠️ Medicine Expiry Warning: Batch {batchNumber} of {medicineName} is expiring soon (Expiry: {expiryDate}). Check your stock.",
@@ -54,7 +54,7 @@ export function getLocalizedMessage(
             ml: "⚠️ മരുന്ന് കാലാവധി തീരുന്ന മുന്നറിയിപ്പ്: {medicineName} ന്റെ ബാച്ച് {batchNumber} ഉടൻ കാലാവധി തീരും (കാലാവധി: {expiryDate}). നിങ്ങളുടെ സ്റ്റോക്ക് പരിശോധിക്കുക.",
             pa: "⚠️ ਦਵਾਈ ਖਤਮ ਹੋਣ ਦੀ ਚੇਤਾਵਨੀ: {medicineName} ਦਾ ਬੈਚ {batchNumber} ਜਲਦੀ ਹੀ ਖਤਮ ਹੋ ਰਿਹਾ ਹੈ (ਮਿਆਦ: {expiryDate})। ਆਪਣੇ ਸਟਾਕ ਦੀ ਜਾਂਚ ਕਰੋ।",
             ur: "⚠️ دوا کی میعاد ختم ہونے کا انتباہ: {medicineName} کا بیچ {batchNumber} جلد ہی ختم ہو رہا ہے (میعاد: {expiryDate})۔ اپنا اسٹاک چیک کریں۔",
-            as: "⚠️ ঔষধৰ ম্যাদ উকলি যোৱাৰ সতৰ্কবাণী: {medicineName} ৰ বেটচ {batchNumber} সোনকালে ম্যাদ উকলি যাব (ম্যাদ: {expiryDate})। আপোনাৰ ষ্টক পৰীক্ষা কৰক।"
+            as: "⚠️ ঔষধৰ ম্যাদ উকলি যোৱাৰ সতৰ্কবাণী: {medicineName} ৰ বেটচ {batchNumber} সোনকালে ম্যাদ উকলি যাব (ম্যাদ: {expiryDate})। আপোনাৰ ষ্টক পৰীক্ষা কৰক।",
         },
     };
 

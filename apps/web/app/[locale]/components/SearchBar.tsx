@@ -448,6 +448,7 @@ export default function SearchBar({ dark = false, onSearchChange }: SearchBarPro
                 historyItems={history}
                 onPinToggle={togglePin}
                 onClearHistory={clearHistory}
+                query={query.trim()}
             />
         </div>
     );
