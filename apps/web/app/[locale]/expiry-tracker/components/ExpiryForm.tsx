@@ -18,7 +18,6 @@ interface ExpiryFormProps {
     medicinesCount: number;
     fileInputRef: React.RefObject<HTMLInputElement | null>;
     notificationPermission: string;
-    isSubmitting?: boolean;
     onNameChange: (value: string) => void;
     onExpiryDateChange: (value: string) => void;
     onBatchNumberChange: (value: string) => void;
